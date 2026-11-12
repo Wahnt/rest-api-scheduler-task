@@ -3,12 +3,15 @@ package tests
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
+
+// ── TestNextDate ──
 
 type nextDate struct {
 	date   string
@@ -44,12 +47,10 @@ func TestNextDate(t *testing.T) {
 			get, err := getBody(urlPath)
 			assert.NoError(t, err)
 			next := strings.TrimSpace(string(get))
-			_, err = time.Parse("20060102", next)
-			if err != nil && len(v.want) == 0 {
+			if _, err := time.Parse("20060102", next); err != nil && len(v.want) == 0 {
 				continue
 			}
-			assert.Equal(t, v.want, next, `{%q, %q, %q}`,
-				v.date, v.repeat, v.want)
+			assert.Equal(t, v.want, next, `{%q, %q, %q}`, v.date, v.repeat, v.want)
 		}
 	}
 	check()
@@ -76,4 +77,22 @@ func TestNextDate(t *testing.T) {
 		{"20230226", "w 8,4,5", ""},
 	}
 	check()
+}
+
+// ── TestApp (static) ──
+
+func TestApp(t *testing.T) {
+	cmp := func(fname string) error {
+		fbody, err := os.ReadFile(fname)
+		if err != nil {
+			return err
+		}
+		body, err := getBody(fname)
+		if err != nil {
+			return err
+		}
+		assert.Equal(t, len(fbody), len(body), `сервер возвращает для %s данные другого размера`, fname)
+		return nil
+	}
+	assert.NoError(t, walkDir("../web", cmp))
 }
